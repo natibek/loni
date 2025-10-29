@@ -11,9 +11,17 @@ class Box:
         self.height = height or parent_screen.getmaxyx()[0]
         self.width = width or parent_screen.getmaxyx()[1]
         self.win = self.parent_screen.derwin(self.height, self.width, self.y, self.x)
+
+        self.default_bkgd = curses.color_pair(2)
+
+        self.win.bkgd(" ", self.default_bkgd)
+        # for mouse presses
+        self.win.keypad(True)
+        self.win.nodelay(True)
+
         self.win.box()
 
-    def mouse_pressed(self) -> None:
+    def mouse_pressed(self, x: int, y: int, bstate: int) -> None:
         pass
 
     def pos_in_box(self, x: int, y: int) -> bool:
@@ -30,8 +38,10 @@ class Widget(Box):
 
 
     def focus(self) -> None:
-        print("Focused")
+        self.win.bkgd(" ", curses.color_pair(1))
 
+    def defocus(self) -> None:
+        self.win.bkgd(" ", self.default_bkgd)
 
     def update_text(self, txt: str) -> None:
         if not txt:
