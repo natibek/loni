@@ -1,14 +1,17 @@
+from __future__ import annotations
 import curses
 
 class Box:
     """Defines what it is to occupy space on a screen."""
 
-    def __init__(self, x: int, y: int, height: int, width: int, parent_screen: curses.window) -> None:
-        self.stdsrc = parent_screen
+    def __init__(self, parent_screen: curses.window, x: int, y: int, height: int | None = None, width: int | None = None) -> None:
+        self.parent_screen = parent_screen
         self.x = x
         self.y = y
-        self.width = width
-        self.height = height
+        self.height = height or parent_screen.getmaxyx()[0]
+        self.width = width or parent_screen.getmaxyx()[1]
+        self.win = self.parent_screen.derwin(self.height, self.width, self.y, self.x)
+        self.win.box()
 
     def mouse_pressed(self) -> None:
         pass
@@ -21,9 +24,15 @@ class Box:
 
 
 class Widget(Box):
-    def __init__(self, x: int, y: int, height: int, width: int, parent_screen: curses.window) -> None:
-        super().__init__(x, y, height, width, parent_screen)
+    def __init__(self, parent_screen: curses.window, x: int, y: int, height: int | None = None, width: int | None = None) -> None:
+        super().__init__(parent_screen, x, y, height, width)
         self.focusable = True
 
+
     def focus(self) -> None:
-        pass
+        print("Focused")
+
+
+    def update_text(self, txt: str) -> None:
+        if not txt:
+            return
