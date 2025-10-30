@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import curses
-from widget import Widget
+from widget import BorderPos, Widget
 from events import MouseEvent, KeyEvent, EventHandlerType, Event
 from typing import Any
 
@@ -200,17 +200,18 @@ def handle_key(event: KeyEvent) -> None:
 
 def main() -> None:
     app, root = LoniApp.create_app()
+    root.border_pos = BorderPos.TOP_CENTER
     root.update_border_title("HOME")
     try:
-        box = Widget(root, 10, 10, 20, 20, border_title="Border 1")
+        box = Widget(root, 10, 10, 20, 20)
         app.register_for_mouse_event(box, do_nothing)
         app.register_for_key_event(box, update_title)
 
-        box2 = Widget(root, 20, 10, 20, 20)
+        box2 = Widget(root, 20, 10, 20, 20, border_title="Box 2", border_pos=BorderPos.BOTTOM_CENTER)
         app.register_for_mouse_event(box2, do_nothing)
 
         box3 = Widget(box2, 10, 10, 5, 8)
-        app.register_for_mouse_event(box3, lambda event: root.update_border_title("Pressed"))
+        app.register_for_mouse_event(box3, lambda event: root.update_border_title("Pressed", BorderPos.BOTTOM_CENTER))
 
         app.event_loop()
     except Exception as e:
