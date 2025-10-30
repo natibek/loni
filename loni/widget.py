@@ -28,7 +28,10 @@ class Box:
         self.height = height or self.parent_screen.getmaxyx()[0]
         self.width = width or self.parent_screen.getmaxyx()[1]
         self.win = self.parent_screen.derwin(self.height, self.width, self.y, self.x)
+
+        self.focus_bkgd = curses.color_pair(1)
         self.default_bkgd = curses.color_pair(2)
+
         self.win.bkgd(" ", self.default_bkgd)
 
         # for mouse presses
@@ -45,9 +48,15 @@ class Widget(Box):
         super().__init__(parent, x, y, height, width, **kwargs)
         self.focusable = True
 
+        # This will help with widgets for which it doesn't make sense for events to propagate
+        # eg Buttons for mouse event
+        self.propagates_mouse_event = True
+        self.propagates_key_event = True
+
 
     def focus(self) -> None:
-        self.win.bkgd(" ", curses.color_pair(1))
+        if self.focusable:
+            self.win.bkgd(" ", self.focus_bkgd)
 
     def defocus(self) -> None:
         self.win.bkgd(" ", self.default_bkgd)

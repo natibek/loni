@@ -105,11 +105,30 @@ class LoniApp:
 
             if not event.stop_propagation:
                 callback(event)
+                if not widget.propagates_mouse_event:
+                    event.stop()
+
 
     def key_event(self, char: int):
         event = KeyEvent(char)
+        y, x = self.root.win.getyx()
+
+        widgets_containing_cursor: list[tuple[Widget, Callable[[KeyEvent], None]]] = []
+
         for widget, callback in self.__subs_for_key_event.items():
-            callback(event)
+            if widget.win.enclose(y, x):
+                widgets_containing_cursor.append((widget, callback))
+
+        if not widgets_containing_cursor:
+            return
+
+        widgets_containing_cursor.sort(key=lambda tup: tup[0].depth, reverse=True)
+        for widget, callback in widgets_containing_cursor:
+            if not event.stop_propagation:
+                callback(event)
+                if not widget.propagates_key_event:
+                    event.stop()
+
 
     def exit(self) -> None:
         curses.nocbreak()
