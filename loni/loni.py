@@ -200,9 +200,9 @@ def handle_key(event: KeyEvent) -> None:
 
 def main() -> None:
     app, root = LoniApp.create_app()
-
+    root.update_border_title("HOME")
     try:
-        box = Widget(root, 10, 10, 20, 20)
+        box = Widget(root, 10, 10, 20, 20, border_title="Border 1")
         app.register_for_mouse_event(box, do_nothing)
         app.register_for_key_event(box, update_title)
 
@@ -210,7 +210,7 @@ def main() -> None:
         app.register_for_mouse_event(box2, do_nothing)
 
         box3 = Widget(box2, 10, 10, 5, 8)
-        app.register_for_mouse_event(box3, do_nothing)
+        app.register_for_mouse_event(box3, lambda event: root.update_border_title("Pressed"))
 
         app.event_loop()
     except Exception as e:

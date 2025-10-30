@@ -13,6 +13,7 @@ class Box:
         height: int | None = None,
         width: int | None = None,
         border: bool = True,
+        border_title: str = "",
         **kwargs
     ) -> None:
 
@@ -48,8 +49,16 @@ class Box:
         self.win.keypad(True)
         self.win.nodelay(True)
 
-        if border:
+        self.border = border
+        self.update_border_title(border_title)
+
+
+    def update_border_title(self, title: str) -> None:
+        self.border_title = title
+        if self.border:
             self.win.box()
+            if title:
+                self.win.addstr(0, 3, title)
 
 class Widget(Box):
 
@@ -61,9 +70,10 @@ class Widget(Box):
         height: int | None = None,
         width: int | None = None,
         border: bool = True,
+        border_title: str = "",
         **kwargs
     ) -> None:
-        super().__init__(parent, x, y, height, width, border, **kwargs)
+        super().__init__(parent, x, y, height, width, border, border_title, **kwargs)
         self.focusable = True
 
         # This will help with widgets for which it doesn't make sense for events to propagate
