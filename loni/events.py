@@ -2,7 +2,7 @@ from __future__ import annotations
 from typing import Protocol, Any, TypeVar, TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from .widget import Widget
+    from loni.widget import Widget
 
 class Event:
     def __init__(self, x: int, y: int) -> None:

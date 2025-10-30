@@ -3,7 +3,7 @@ from typing import TYPE_CHECKING
 
 
 if TYPE_CHECKING:
-    from .loniapp import LoniApp
+    from loni.loniapp import LoniApp
 
 # Global context for the running app
 app: "LoniApp | None" = None

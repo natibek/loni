@@ -3,10 +3,10 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any
 import curses
 
-from .widget import Widget
-from . import _set_app
-from .colors import Colors
-from .events import MouseEvent, KeyEvent
+from loni.widget import Widget
+from loni import _set_app
+from loni.colors import Colors
+from loni.events import MouseEvent, KeyEvent
 
 if TYPE_CHECKING:
     from .events import EventHandlerType
