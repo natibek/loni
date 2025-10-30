@@ -48,7 +48,7 @@ class LoniApp:
         curses.mousemask(curses.ALL_MOUSE_EVENTS | curses.REPORT_MOUSE_POSITION)
 
         self.cur_window = self.root
-        self.register_for_mouse_event(self.root, do_nothing)
+        self.register_for_mouse_event(self.root, lambda _: None)
 
     @property
     def in_focus(self) -> Widget:
@@ -82,13 +82,29 @@ class LoniApp:
         (_, x, y, _, bstate) = curses.getmouse()
         event = MouseEvent(x, y, bstate)
 
+        widgets_containing_mouse: list[tuple[Widget, Callable[[MouseEvent], None]]] = []
         if bstate & curses.BUTTON1_CLICKED:
             for widget, callback in self.__subs_for_mouse_event.items():
+                # find all the widgets that enclose the location of the mouse event
                 if widget.win.enclose(y, x):
-                    if widget.focusable:
-                        self.in_focus = widget
+                    widgets_containing_mouse.append((widget, callback))
 
-                    callback(event)
+
+        if not widgets_containing_mouse:
+            return
+
+        # sort the widgets by their depth in reverse order
+        # TODO: handle overlapping widgets
+        widgets_containing_mouse.sort(key=lambda tup: tup[0].depth, reverse=True)
+
+        focused = False
+        for widget, callback in widgets_containing_mouse:
+            if not focused and widget.focusable:
+                self.in_focus = widget
+                focused = True
+
+            if not event.stop_propagation:
+                callback(event)
 
     def key_event(self, char: int):
         event = KeyEvent(char)
@@ -121,7 +137,7 @@ class LoniApp:
             self.cur_window.win.refresh()
 
 def do_nothing(event):
-    assert event
+    event.stop()
 
 def main() -> None:
     app, root = LoniApp.create_app()
@@ -130,7 +146,7 @@ def main() -> None:
         box = Widget(root, 10, 10, 20, 20)
         app.register_for_mouse_event(box, do_nothing)
 
-        box2 = Widget(root, 40, 10, 20, 20)
+        box2 = Widget(root, 20, 10, 20, 20)
         app.register_for_mouse_event(box2, do_nothing)
 
         box3 = Widget(box2, 10, 10, 5, 8)

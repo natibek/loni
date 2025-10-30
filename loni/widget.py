@@ -17,8 +17,10 @@ class Box:
             # a keyword argument.
             assert "stdscr" in kwargs
             self.parent_screen = kwargs["stdscr"]
+            self.depth = 0
         else:
             self.parent_screen = parent.win
+            self.depth = parent.depth + 1
 
         assert isinstance(self.parent_screen, curses.window)
         self.x = x
