@@ -2,11 +2,20 @@ from __future__ import annotations
 
 import curses
 from widget import Widget
+from events import MouseEvent, KeyEvent
 from typing import Callable
 
+def initialize_colors() -> None:
+    """Initializes the colors to be used. Called when the root box is created."""
+
+    curses.start_color()
+    curses.use_default_colors()
+    curses.init_pair(1, curses.COLOR_WHITE, curses.COLOR_BLUE)
+    curses.init_pair(2, curses.COLOR_WHITE, curses.COLOR_GREEN)
+
 class LoniApp:
-    __subs_for_mouse_event: dict[Widget, Callable[[int, int, int], None]] = {}
-    __subs_for_key_event: dict[Widget, Callable[[int], None]] = {}
+    __subs_for_mouse_event: dict[Widget, Callable[[MouseEvent], None]] = {}
+    __subs_for_key_event: dict[Widget, Callable[[KeyEvent], None]] = {}
 
     __allow_direct_init = False
     __inst: LoniApp | None = None
@@ -23,31 +32,23 @@ class LoniApp:
         return app
 
     def __init__(self) -> None:
-        self.stdscr = curses.initscr()
+        stdscr = curses.initscr()
+        initialize_colors()
 
-        # some initial colors
-        curses.start_color()
-        curses.use_default_colors()
-        curses.init_pair(1, curses.COLOR_WHITE, curses.COLOR_BLUE)
-        curses.init_pair(2, curses.COLOR_WHITE, curses.COLOR_GREEN)
-
-
-        self.root= Widget(self.stdscr, 0, 0)
-
+        self.root= Widget(None, 0, 0, stdscr = stdscr)
 
         curses.curs_set(0)
+
         # defaults
         curses.cbreak()
-        self.stdscr.keypad(True)
         curses.noecho()
-        self.stdscr.nodelay(True)
         curses.flushinp()
 
         # enable mouse
         curses.mousemask(curses.ALL_MOUSE_EVENTS | curses.REPORT_MOUSE_POSITION)
 
         self.cur_window = self.root
-        self.register_for_mouse_event(self.root, self.root.mouse_pressed)
+        self.register_for_mouse_event(self.root, do_nothing)
 
     @property
     def in_focus(self) -> Widget:
@@ -71,14 +72,15 @@ class LoniApp:
         cls.__allow_direct_init = False
         return app, app.root
 
-    def register_for_mouse_event(self, widget: Widget, callback: Callable[[int, int, int], None]) -> None:
+    def register_for_mouse_event(self, widget: Widget, callback: Callable[[MouseEvent], None]) -> None:
         self.__subs_for_mouse_event[widget] = callback
 
-    def register_for_key_event(self, widget: Widget, callback: Callable[[int], None]) -> None:
+    def register_for_key_event(self, widget: Widget, callback: Callable[[KeyEvent], None]) -> None:
         self.__subs_for_key_event[widget] = callback
 
     def mouse_event(self):
-        (id, x, y, z, bstate) = curses.getmouse()
+        (_, x, y, _, bstate) = curses.getmouse()
+        event = MouseEvent(x, y, bstate)
 
         if bstate & curses.BUTTON1_CLICKED:
             for widget, callback in self.__subs_for_mouse_event.items():
@@ -86,15 +88,16 @@ class LoniApp:
                     if widget.focusable:
                         self.in_focus = widget
 
-                    callback(x, y, bstate)
+                    callback(event)
 
     def key_event(self, char: int):
+        event = KeyEvent(char)
         for widget, callback in self.__subs_for_key_event.items():
-            callback(char)
+            callback(event)
 
     def exit(self) -> None:
         curses.nocbreak()
-        self.stdscr.keypad(False)
+        self.root.win.keypad(False)
         curses.echo()
         curses.endwin()
         curses.flushinp()
@@ -112,22 +115,31 @@ class LoniApp:
             if char == curses.KEY_MOUSE:
                 self.mouse_event()
             else:
-                self.stdscr.addch(chr(char))
+                self.root.win.addch(chr(char))
                 self.key_event(char)
 
             self.cur_window.win.refresh()
 
-
+def do_nothing(event):
+    assert event
 
 def main() -> None:
     app, root = LoniApp.create_app()
-    box = Widget(root.win, 10, 10, 20, 20)
-    app.register_for_mouse_event(box, box.mouse_pressed)
 
-    box2 = Widget(root.win, 40, 10, 20, 20)
-    app.register_for_mouse_event(box2, box2.mouse_pressed)
+    try:
+        box = Widget(root, 10, 10, 20, 20)
+        app.register_for_mouse_event(box, do_nothing)
 
-    app.event_loop()
+        box2 = Widget(root, 40, 10, 20, 20)
+        app.register_for_mouse_event(box2, do_nothing)
+
+        box3 = Widget(box2, 10, 10, 5, 8)
+        app.register_for_mouse_event(box3, do_nothing)
+
+        app.event_loop()
+    except Exception as e:
+        app.exit()
+        raise e
 
 if __name__ == "__main__":
     SystemExit(main())
