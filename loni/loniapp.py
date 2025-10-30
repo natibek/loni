@@ -1,20 +1,16 @@
 from __future__ import annotations
 
+from typing import TYPE_CHECKING, Any
 import curses
-from widget import BorderPos, Widget
-from events import MouseEvent, KeyEvent, EventHandlerType, Event
-from typing import Any
 
-def initialize_colors() -> None:
-    """Initializes the colors to be used. Called when the root box is created."""
+from .widget import Widget
+from . import _set_app
+from .colors import Colors
+from .events import MouseEvent, KeyEvent
 
-    curses.start_color()
-    curses.use_default_colors()
-    curses.init_pair(1, curses.COLOR_WHITE, curses.COLOR_BLUE)
-    curses.init_pair(2, curses.COLOR_WHITE, curses.COLOR_GREEN)
-
-
-EventCallBackAndArgs = tuple[EventHandlerType | None, tuple[Any, ...], dict[str, Any]]
+if TYPE_CHECKING:
+    from .events import EventHandlerType
+    EventCallBackAndArgs = tuple[EventHandlerType | None, tuple[Any, ...], dict[str, Any]]
 
 class LoniApp:
     __subs_for_mouse_event: dict[Widget, EventCallBackAndArgs] = {}
@@ -32,11 +28,17 @@ class LoniApp:
         else:
             app = cls.__inst
 
+        # update the global context with a new LoniApp
+        _set_app(app)
+
         return app
 
     def __init__(self) -> None:
         stdscr = curses.initscr()
-        initialize_colors()
+        curses.start_color()
+        curses.use_default_colors()
+        self.colors = Colors()
+        self.colors._generate_defaults()
 
         self.root= Widget(None, 0, 0, stdscr = stdscr)
 
@@ -53,6 +55,13 @@ class LoniApp:
         self.cur_window = self.root
         self.register_for_mouse_event(self.root)
 
+    @classmethod
+    def create_app(cls) -> tuple[LoniApp, Widget]:
+        cls.__allow_direct_init = True
+        app = cls()
+        cls.__allow_direct_init = False
+        return app, app.root
+
     @property
     def in_focus(self) -> Widget:
         return self._in_focus
@@ -67,13 +76,6 @@ class LoniApp:
 
         widget.focus()
         self._in_focus = widget
-
-    @classmethod
-    def create_app(cls) -> tuple[LoniApp, Widget]:
-        cls.__allow_direct_init = True
-        app = cls()
-        cls.__allow_direct_init = False
-        return app, app.root
 
     def register_for_mouse_event(
         self,
@@ -186,40 +188,6 @@ class LoniApp:
                 self.key_event(char)
 
             self.cur_window.win.refresh()
-
-def do_nothing(event: Event):
-    event.stop()
-
-def update_title(event: MouseEvent, *args, **kwargs) -> None:
-    return
-
-def handle_key(event: KeyEvent) -> None:
-    me = event.widget
-    me.update_text(f"Key pressed {chr(event.key)}")
-
-
-def main() -> None:
-    app, root = LoniApp.create_app()
-    root.border_pos = BorderPos.TOP_CENTER
-    root.update_border_title("HOME")
-    try:
-        box = Widget(root, 10, 10, 20, 20)
-        app.register_for_mouse_event(box, do_nothing)
-        app.register_for_key_event(box, update_title)
-
-        box2 = Widget(root, 20, 10, 20, 20, border_title="Box 2", border_pos=BorderPos.BOTTOM_CENTER)
-        app.register_for_mouse_event(box2, do_nothing)
-
-        box3 = Widget(box2, 10, 10, 5, 8)
-        app.register_for_mouse_event(box3, lambda event: root.update_border_title("Pressed", BorderPos.BOTTOM_CENTER))
-
-        app.event_loop()
-    except Exception as e:
-        app.exit()
-        raise e
-
-if __name__ == "__main__":
-    SystemExit(main())
 
 
 

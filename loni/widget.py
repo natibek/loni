@@ -3,6 +3,8 @@ import curses
 
 import enum
 
+from loni import get_app
+
 class BorderPos(enum.Enum):
     TOP_LEFT     = 0
     BOTTOM_LEFT  = 1
@@ -52,8 +54,9 @@ class Box:
         self.width = width or self.parent_screen.getmaxyx()[1]
         self.win = self.parent_screen.derwin(self.height, self.width, self.y, self.x)
 
-        self.focus_bkgd = curses.color_pair(1)
-        self.default_bkgd = curses.color_pair(2)
+        self.app = get_app()
+        self.focus_bkgd = self.app.colors["WHITE_BLUE"]
+        self.default_bkgd = self.app.colors["WHITE_GREEN"]
 
         self.win.bkgd(" ", self.default_bkgd)
 
