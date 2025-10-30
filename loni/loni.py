@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import curses
 from widget import Widget
-from events import MouseEvent, KeyEvent
-from typing import Callable
+from events import MouseEvent, KeyEvent, EventHandlerType, Event
+from typing import Any
 
 def initialize_colors() -> None:
     """Initializes the colors to be used. Called when the root box is created."""
@@ -13,9 +13,12 @@ def initialize_colors() -> None:
     curses.init_pair(1, curses.COLOR_WHITE, curses.COLOR_BLUE)
     curses.init_pair(2, curses.COLOR_WHITE, curses.COLOR_GREEN)
 
+
+EventCallBackAndArgs = tuple[EventHandlerType | None, tuple[Any, ...], dict[str, Any]]
+
 class LoniApp:
-    __subs_for_mouse_event: dict[Widget, Callable[[MouseEvent], None]] = {}
-    __subs_for_key_event: dict[Widget, Callable[[KeyEvent], None]] = {}
+    __subs_for_mouse_event: dict[Widget, EventCallBackAndArgs] = {}
+    __subs_for_key_event: dict[Widget, EventCallBackAndArgs] = {}
 
     __allow_direct_init = False
     __inst: LoniApp | None = None
@@ -48,7 +51,7 @@ class LoniApp:
         curses.mousemask(curses.ALL_MOUSE_EVENTS | curses.REPORT_MOUSE_POSITION)
 
         self.cur_window = self.root
-        self.register_for_mouse_event(self.root, lambda _: None)
+        self.register_for_mouse_event(self.root)
 
     @property
     def in_focus(self) -> Widget:
@@ -72,22 +75,38 @@ class LoniApp:
         cls.__allow_direct_init = False
         return app, app.root
 
-    def register_for_mouse_event(self, widget: Widget, callback: Callable[[MouseEvent], None]) -> None:
-        self.__subs_for_mouse_event[widget] = callback
+    def register_for_mouse_event(
+        self,
+        widget: Widget,
+        callback: EventHandlerType | None = None,
+        args: tuple[Any, ...] = tuple(),
+        kwargs: dict[str, Any] = {},
+    ) -> None:
 
-    def register_for_key_event(self, widget: Widget, callback: Callable[[KeyEvent], None]) -> None:
-        self.__subs_for_key_event[widget] = callback
+        self.__subs_for_mouse_event[widget] = (callback, args, kwargs)
+
+    def register_for_key_event(
+        self,
+        widget: Widget,
+        callback: EventHandlerType | None = None,
+        args: tuple[Any, ...] = tuple(),
+        kwargs: dict[str, Any] = {},
+    ) -> None:
+        self.__subs_for_key_event[widget] = (callback, args, kwargs)
 
     def mouse_event(self):
+        """Handle the mouse event by findings all the widgets that enclose the event that have
+        registered for the event and calling their callback function.
+        """
         (_, x, y, _, bstate) = curses.getmouse()
         event = MouseEvent(x, y, bstate)
 
-        widgets_containing_mouse: list[tuple[Widget, Callable[[MouseEvent], None]]] = []
+        widgets_containing_mouse: list[tuple[Widget, EventCallBackAndArgs]] = []
         if bstate & curses.BUTTON1_CLICKED:
-            for widget, callback in self.__subs_for_mouse_event.items():
+            for widget, callback_and_args in self.__subs_for_mouse_event.items():
                 # find all the widgets that enclose the location of the mouse event
                 if widget.win.enclose(y, x):
-                    widgets_containing_mouse.append((widget, callback))
+                    widgets_containing_mouse.append((widget, callback_and_args))
 
 
         if not widgets_containing_mouse:
@@ -98,34 +117,47 @@ class LoniApp:
         widgets_containing_mouse.sort(key=lambda tup: tup[0].depth, reverse=True)
 
         focused = False
-        for widget, callback in widgets_containing_mouse:
+        for widget, callback_and_args in widgets_containing_mouse:
             if not focused and widget.focusable:
                 self.in_focus = widget
                 focused = True
 
             if not event.stop_propagation:
-                callback(event)
+                event.widget = widget
+                callback, args, kwargs = callback_and_args
+
+                if callback is None:
+                    continue
+
+                callback(event, *args, **kwargs)
                 if not widget.propagates_mouse_event:
                     event.stop()
 
 
     def key_event(self, char: int):
-        event = KeyEvent(char)
+        """Handle the key inputs by findings all the widgets that enclose the cursor that have
+        registered for the event and calling their callback function.
+        """
         y, x = self.root.win.getyx()
+        event = KeyEvent(x, y, char)
 
-        widgets_containing_cursor: list[tuple[Widget, Callable[[KeyEvent], None]]] = []
+        widgets_containing_cursor: list[tuple[Widget, EventCallBackAndArgs]] = []
 
-        for widget, callback in self.__subs_for_key_event.items():
+        for widget, callback_and_args in self.__subs_for_key_event.items():
             if widget.win.enclose(y, x):
-                widgets_containing_cursor.append((widget, callback))
+                widgets_containing_cursor.append((widget, callback_and_args))
 
         if not widgets_containing_cursor:
             return
 
         widgets_containing_cursor.sort(key=lambda tup: tup[0].depth, reverse=True)
-        for widget, callback in widgets_containing_cursor:
+        for widget, callback_and_args in widgets_containing_cursor:
             if not event.stop_propagation:
-                callback(event)
+                event.widget = widget
+                callback, args, kwargs = callback_and_args
+                if callback is None:
+                    continue
+                callback(event, *args, **kwargs)
                 if not widget.propagates_key_event:
                     event.stop()
 
@@ -155,8 +187,16 @@ class LoniApp:
 
             self.cur_window.win.refresh()
 
-def do_nothing(event):
+def do_nothing(event: Event):
     event.stop()
+
+def update_title(event: MouseEvent, *args, **kwargs) -> None:
+    return
+
+def handle_key(event: KeyEvent) -> None:
+    me = event.widget
+    me.update_text(f"Key pressed {chr(event.key)}")
+
 
 def main() -> None:
     app, root = LoniApp.create_app()
@@ -164,6 +204,7 @@ def main() -> None:
     try:
         box = Widget(root, 10, 10, 20, 20)
         app.register_for_mouse_event(box, do_nothing)
+        app.register_for_key_event(box, update_title)
 
         box2 = Widget(root, 20, 10, 20, 20)
         app.register_for_mouse_event(box2, do_nothing)

@@ -5,7 +5,17 @@ class Box:
     """Defines what it is to occupy space on a screen."""
 
     __num_roots: int = 0
-    def __init__(self, parent: Box | None, x: int, y: int, height: int | None = None, width: int | None = None, **kwargs) -> None:
+    def __init__(
+        self,
+        parent: Box | None,
+        x: int,
+        y: int,
+        height: int | None = None,
+        width: int | None = None,
+        border: bool = True,
+        **kwargs
+    ) -> None:
+
         self.parent = parent
 
         if not parent: # we are creating the root box
@@ -38,21 +48,28 @@ class Box:
         self.win.keypad(True)
         self.win.nodelay(True)
 
-        self.win.box()
-
-    def mouse_pressed(self, x: int, y: int, bstate: int) -> None:
-        pass
+        if border:
+            self.win.box()
 
 class Widget(Box):
-    def __init__(self, parent: Box | None, x: int, y: int, height: int | None = None, width: int | None = None, **kwargs) -> None:
-        super().__init__(parent, x, y, height, width, **kwargs)
+
+    def __init__(
+        self,
+        parent: Box | None,
+        x: int,
+        y: int,
+        height: int | None = None,
+        width: int | None = None,
+        border: bool = True,
+        **kwargs
+    ) -> None:
+        super().__init__(parent, x, y, height, width, border, **kwargs)
         self.focusable = True
 
         # This will help with widgets for which it doesn't make sense for events to propagate
         # eg Buttons for mouse event
         self.propagates_mouse_event = True
         self.propagates_key_event = True
-
 
     def focus(self) -> None:
         if self.focusable:
@@ -64,3 +81,6 @@ class Widget(Box):
     def update_text(self, txt: str) -> None:
         if not txt:
             return
+
+        self.win.addstr(txt)
+
