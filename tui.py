@@ -1,4 +1,4 @@
-from loni.loniapp import LoniApp
+from loni import LoniApp
 from loni.widget import BorderPos, Widget
 from loni.events import MouseEvent, Event, KeyEvent
 

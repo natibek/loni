@@ -3,7 +3,7 @@ import curses
 
 import enum
 
-from loni import get_app
+from loni.ctx import get_app
 
 class BorderPos(enum.Enum):
     TOP_LEFT     = 0

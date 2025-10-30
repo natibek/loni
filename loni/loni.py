@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING, Any
 import curses
 
 from loni.widget import Widget
-from loni import _set_app
+from loni.ctx import _set_app
 from loni.colors import Colors
 from loni.events import MouseEvent, KeyEvent
 
