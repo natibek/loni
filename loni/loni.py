@@ -34,17 +34,19 @@ class LoniApp:
         return app
 
     def __init__(self) -> None:
-        stdscr = curses.initscr()
+        self.stdscr = curses.initscr()
         curses.start_color()
         curses.use_default_colors()
         self.colors = Colors()
         self.colors._generate_defaults()
 
-        self.root= Widget(None, 0, 0, stdscr = stdscr)
+        self.root= Widget(None, 0, 0, stdscr = self.stdscr)
+        self.root.draw()
 
         curses.curs_set(0)
 
         # defaults
+        # self.stdscr.nodelay(True)
         curses.cbreak()
         curses.noecho()
         curses.flushinp()
@@ -54,6 +56,7 @@ class LoniApp:
 
         self.cur_window = self.root
         self.register_for_mouse_event(self.root)
+        self._in_focus = None
 
     @classmethod
     def create_app(cls) -> tuple[LoniApp, Widget]:
@@ -63,7 +66,7 @@ class LoniApp:
         return app, app.root
 
     @property
-    def in_focus(self) -> Widget:
+    def in_focus(self) -> Widget | None:
         return self._in_focus
 
     @in_focus.setter
@@ -71,11 +74,16 @@ class LoniApp:
         if not widget.focusable:
             return
 
-        if hasattr(self, "_in_focus"):
+#         if widget.border_title == "Box 2":
+#             self.exit()
+#             exit()
+
+        if self._in_focus:
             self._in_focus.defocus()
 
-        widget.focus()
+
         self._in_focus = widget
+        widget.focus()
 
     def register_for_mouse_event(
         self,
@@ -171,8 +179,11 @@ class LoniApp:
         curses.endwin()
         curses.flushinp()
 
+        self._running= False
+
     def event_loop(self) -> None:
-        while True:
+        self._running = True
+        while self._running:
             char = self.cur_window.win.getch()
             if char == -1:
                 continue
@@ -181,13 +192,21 @@ class LoniApp:
                 self.exit()
                 break
 
+            if "b" == chr(char):
+                self.cur_window.remove_border()
+                continue
+
             if char == curses.KEY_MOUSE:
                 self.mouse_event()
             else:
                 self.root.win.addch(chr(char))
                 self.key_event(char)
 
+            # important for updating the screen at the end of the loop
             self.cur_window.win.refresh()
 
+
+            # clears the screen but keeps the windows
+            # self.cur_window.win.erase()
 
 

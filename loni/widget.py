@@ -5,6 +5,7 @@ import enum
 
 from loni.ctx import get_app
 
+# maybe use strings
 class BorderPos(enum.Enum):
     TOP_LEFT     = 0
     BOTTOM_LEFT  = 1
@@ -14,9 +15,15 @@ class BorderPos(enum.Enum):
     BOTTOM_RIGHT = 5
 
 
+# TODO:
+# 1: Padding and Marging
+# 2: Redraw on screen resize
+# 3: Container widgets with tkinter style packing
+# 4: Scrolling containers
+# 4: Custom widgets: switch, button, label, static, textarea, list, checkbox, h/v lines
+
 class Box:
     """Defines what it is to occupy space on a screen."""
-
     __num_roots: int = 0
     def __init__(
         self,
@@ -40,8 +47,9 @@ class Box:
             self.__num_roots += 1
             # Expect that curses.initscr() has been called and the resulting screen is passed as
             # a keyword argument.
-            assert "stdscr" in kwargs
-            self.parent_screen = kwargs["stdscr"]
+            assert "stdscr" in kwargs and isinstance(kwargs["stdscr"], curses.window)
+            self.parent_screen: curses.window = kwargs["stdscr"]
+            self.parent_screen.clear()
             self.depth = 0
         else:
             self.parent_screen = parent.win
@@ -68,11 +76,32 @@ class Box:
         self.border_pos = border_pos
         self.update_border_title(border_title)
 
+    def remove_border(self) -> None:
+        """Remove the border around the box"""
+        self.win.border(1,1,1,1,1,1,1,1)
+
+    def add_border(self) -> None:
+        """:dd the border around the box"""
+        self.win.border(0,0,0,0,0,0,0,0)
+
+
+    @property
+    def border(self) -> bool:
+        return self._border
+
+    @border.setter
+    def border(self, border: bool) -> None:
+        if border:
+            self._border = True
+            self.add_border()
+            # self.win.box()
+        else:
+            self._border = False
+            self.remove_border()
+
 
     def update_border_title(self, title: str, border_pos: BorderPos | None = None) -> None:
-        """Write the border title.
-
-        """
+        """Write the border title."""
         # TODO: Include position arguments
         X_OFFSET = 3
         self.border_title = title
@@ -80,27 +109,31 @@ class Box:
         if border_pos:
             self.border_pos = border_pos
 
-        if self.border:
-            self.win.box()
-            if title:
-                if self.border_pos.value % 2 == 0:
-                    y = 0
-                else:
-                    y = self.height - 1
+        if not title:
+            return
 
-                match self.border_pos:
-                    case BorderPos.TOP_LEFT | BorderPos.BOTTOM_LEFT:
-                        x = X_OFFSET
-                    case BorderPos.TOP_RIGHT | BorderPos.BOTTOM_RIGHT:
-                        x = max(0, self.width - X_OFFSET - len(title))
-                    case BorderPos.TOP_CENTER | BorderPos.BOTTOM_CENTER:
-                        x = max(0, (self.width // 2)  - (len(title) // 2))
+        if self.border_pos.value % 2 == 0:
+            y = 0
+        else:
+            y = self.height - 1
 
-                if len(title) >= self.width - x:
-                    title = title[:self.width - x]
-                self.win.addstr(y, x, title)
+        match self.border_pos:
+            case BorderPos.TOP_LEFT | BorderPos.BOTTOM_LEFT:
+                x = X_OFFSET
+            case BorderPos.TOP_RIGHT | BorderPos.BOTTOM_RIGHT:
+                x = max(0, self.width - X_OFFSET - len(title))
+            case BorderPos.TOP_CENTER | BorderPos.BOTTOM_CENTER:
+                x = max(0, (self.width // 2)  - (len(title) // 2))
+
+        if len(title) >= self.width - x:
+            title = title[:self.width - x]
+        self.win.addstr(y, x, title)
+
+    def draw(self) -> None:
+        self.win.refresh()
 
 class Widget(Box):
+    """Interactive Box"""
 
     def __init__(
         self,
