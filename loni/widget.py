@@ -49,22 +49,22 @@ class Box:
             # Expect that curses.initscr() has been called and the resulting screen is passed as
             # a keyword argument.
             assert "stdscr" in kwargs and isinstance(kwargs["stdscr"], curses.window)
-            self.parent_screen: curses.window = kwargs["stdscr"]
-            self.parent_screen.clear()
+            self.parent_win: curses.window = kwargs["stdscr"]
+            self.parent_win.clear()
             self.depth = 0
         else:
-            self.parent_screen = parent.win
+            self.parent_win = parent.win
             self.depth = parent.depth + 1
 
-        assert isinstance(self.parent_screen, curses.window)
+        assert isinstance(self.parent_win, curses.window)
         self.x = x
         self.y = y
-        self.height = height or self.parent_screen.getmaxyx()[0]
-        self.width = width or self.parent_screen.getmaxyx()[1]
+        self.height = height or self.parent_win.getmaxyx()[0]
+        self.width = width or self.parent_win.getmaxyx()[1]
 
         self.app = get_app()
 
-        self.win = self.parent_screen.derwin(self.height, self.width, self.y, self.x)
+        self.win = self.parent_win.derwin(self.height, self.width, self.y, self.x)
         self.focus_bkgd = self.app.colors["WHITE_BLUE"]
         self.default_bkgd = self.app.colors["WHITE_GREEN"]
 
@@ -79,7 +79,7 @@ class Box:
         self.win.border(1,1,1,1,1,1,1,1)
 
     def add_border(self) -> None:
-        """:dd the border around the box"""
+        """Add the border around the box"""
         self.win.border(0,0,0,0,0,0,0,0)
 
 

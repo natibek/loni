@@ -7,7 +7,7 @@ def calculate_text_size(text: str) -> tuple[int, int]:
     if not text:
         return (0, 0)
 
-    txt_arr = text.split("\n")
+    txt_arr = text.strip().split("\n")
     cols = max(len(line) for line in txt_arr)
     rows = len(txt_arr)
 

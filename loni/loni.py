@@ -43,7 +43,7 @@ class LoniApp:
         self.root= Widget(None, 0, 0, stdscr = self.stdscr)
         self.root.draw()
 
-        curses.curs_set(0)
+        curses.curs_set(1)
 
         # defaults
         # self.stdscr.nodelay(True)
@@ -104,6 +104,7 @@ class LoniApp:
         registered for the event and calling their callback function.
         """
         (_, x, y, _, bstate) = curses.getmouse()
+        self.cur_window.win.move(y, x)
         event = MouseEvent(x, y, bstate)
 
         widgets_containing_mouse: list[tuple[Widget, EventCallBackAndArgs]] = []
@@ -185,20 +186,16 @@ class LoniApp:
 
             if "q" == chr(char):
                 self.exit()
-                break
-
-            if "b" == chr(char):
-                self.cur_window.remove_border()
-                continue
-
-            if char == curses.KEY_MOUSE:
-                self.mouse_event()
+                # break
             else:
-                self.root.win.addch(chr(char))
-                self.key_event(char)
+                if char == curses.KEY_MOUSE:
+                    self.mouse_event()
+                else:
+                    # self.root.win.addch(chr(char))
+                    self.key_event(char)
 
-            # important for updating the screen at the end of the loop
-            self.cur_window.win.refresh()
+                # important for updating the screen at the end of the loop
+                self.cur_window.win.refresh()
 
 
             # clears the screen but keeps the windows
