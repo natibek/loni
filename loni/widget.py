@@ -35,6 +35,7 @@ class Box:
         border: bool = True,
         border_title: str = "",
         border_pos: BorderPos = BorderPos.TOP_LEFT,
+        # padding: tuple[int, int] = (0, 0),
         **kwargs
     ) -> None:
 
@@ -60,9 +61,10 @@ class Box:
         self.y = y
         self.height = height or self.parent_screen.getmaxyx()[0]
         self.width = width or self.parent_screen.getmaxyx()[1]
-        self.win = self.parent_screen.derwin(self.height, self.width, self.y, self.x)
 
         self.app = get_app()
+
+        self.win = self.parent_screen.derwin(self.height, self.width, self.y, self.x)
         self.focus_bkgd = self.app.colors["WHITE_BLUE"]
         self.default_bkgd = self.app.colors["WHITE_GREEN"]
 
@@ -71,10 +73,6 @@ class Box:
         # for mouse presses
         self.win.keypad(True)
         self.win.nodelay(True)
-
-        self.border = border
-        self.border_pos = border_pos
-        self.update_border_title(border_title)
 
     def remove_border(self) -> None:
         """Remove the border around the box"""
@@ -148,6 +146,11 @@ class Widget(Box):
         **kwargs
     ) -> None:
         super().__init__(parent, x, y, height, width, border, border_title, border_pos, **kwargs)
+
+        self.border = border
+        self.border_pos = border_pos
+        self.update_border_title(border_title)
+
         self.focusable = True
 
         # This will help with widgets for which it doesn't make sense for events to propagate
@@ -162,9 +165,9 @@ class Widget(Box):
     def defocus(self) -> None:
         self.win.bkgd(" ", self.default_bkgd)
 
-    def update_text(self, txt: str) -> None:
-        if not txt:
-            return
+    # def update_text(self, txt: str) -> None:
+    #     if not txt:
+    #         return
 
-        self.win.addstr(txt)
+    #     self.win.addstr(txt)
 

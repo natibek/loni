@@ -74,13 +74,8 @@ class LoniApp:
         if not widget.focusable:
             return
 
-#         if widget.border_title == "Box 2":
-#             self.exit()
-#             exit()
-
         if self._in_focus:
             self._in_focus.defocus()
-
 
         self._in_focus = widget
         widget.focus()

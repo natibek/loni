@@ -1,6 +1,7 @@
 from loni import LoniApp
 from loni.widget import BorderPos, Widget
 from loni.events import MouseEvent, Event, KeyEvent
+from loni.widgets.static import Static
 
 def do_nothing(event: Event):
     event.stop()
@@ -30,6 +31,7 @@ def main() -> None:
 
         # box3 = Widget(box2, 10, 10, 5, 8)
         # app.register_for_mouse_event(box3, lambda event: root.update_border_title("Pressed", BorderPos.BOTTOM_CENTER))
+        static = Static(root, 10, 10, text="What is your name?\nMy name is the man that")
         app.event_loop()
 
     except Exception as e:
